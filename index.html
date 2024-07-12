@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Space Shooter</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        #score, #debug { position: absolute; color: white; font-family: Arial; }
+        #score { top: 10px; left: 10px; }
+        #debug { bottom: 10px; left: 10px; }
+    </style>
+</head>
+<body>
+    <div id="score">Score: 0</div>
+    <div id="debug">Debug: No key pressed yet</div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer, spaceship, asteroids = [], score = 0;
+        let moveSpeed = 0.1, asteroidSpeed = 0.05;
+        let gameActive = true;
+        let asteroidInterval;
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            createSpaceship();
+
+            camera.position.z = 5;
+
+            document.addEventListener('keydown', onKeyDown);
+
+            startGame();
+        }
+
+        function createSpaceship() {
+            const geometry = new THREE.ConeGeometry(0.5, 1, 32);
+            const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+            spaceship = new THREE.Mesh(geometry, material);
+            spaceship.position.set(0, -4, 0);
+            scene.add(spaceship);
+        }
+
+        function onKeyDown(event) {
+            if (!gameActive) return;
+            document.getElementById('debug').innerText = `Debug: Key pressed - ${event.key}`;
+            switch(event.key) {
+                case 'a':
+                case 'A':
+                case 'ArrowLeft':
+                    spaceship.position.x -= moveSpeed;
+                    break;
+                case 'd':
+                case 'D':
+                case 'ArrowRight':
+                    spaceship.position.x += moveSpeed;
+                    break;
+            }
+        }
+
+        function createAsteroid() {
+            const geometry = new THREE.SphereGeometry(0.5, 32, 32);
+            const material = new THREE.MeshBasicMaterial({ color: 0xaaaaaa });
+            const asteroid = new THREE.Mesh(geometry, material);
+            asteroid.position.x = Math.random() * 6 - 3;
+            asteroid.position.y = 6;
+            asteroid.position.z = 0;
+            scene.add(asteroid);
+            asteroids.push(asteroid);
+        }
+
+        function updateAsteroids() {
+            for (let i = asteroids.length - 1; i >= 0; i--) {
+                asteroids[i].position.y -= asteroidSpeed;
+                if (asteroids[i].position.y < -6) {
+                    scene.remove(asteroids[i]);
+                    asteroids.splice(i, 1);
+                    score++;
+                    document.getElementById('score').innerText = `Score: ${score}`;
+                }
+                if (asteroids[i].position.distanceTo(spaceship.position) < 0.75) {
+                    endGame();
+                }
+            }
+        }
+
+        function animate() {
+            if (!gameActive) return;
+            requestAnimationFrame(animate);
+            updateAsteroids();
+            renderer.render(scene, camera);
+        }
+
+        function startGame() {
+            gameActive = true;
+            score = 0;
+            document.getElementById('score').innerText = `Score: ${score}`;
+            spaceship.position.set(0, -4, 0);
+            asteroids.forEach(asteroid => scene.remove(asteroid));
+            asteroids = [];
+            asteroidInterval = setInterval(createAsteroid, 2000);
+            animate();
+        }
+
+        function endGame() {
+            gameActive = false;
+            clearInterval(asteroidInterval);
+            alert('Game Over! Your score: ' + score);
+            setTimeout(startGame, 1000);
+        }
+
+        init();
+    </script>
+</body>
+</html>
